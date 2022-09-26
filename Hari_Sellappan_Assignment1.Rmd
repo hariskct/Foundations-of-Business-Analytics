@@ -1,0 +1,238 @@
+---
+title: "BANA200_Foundations_of_Business_Analytics_HariSellappan_Assignment1"
+output: html_notebook
+---
+```{r}
+#Q1: Import the dataset and check the overall and column wise missing values.
+
+```
+
+
+```{r}
+# Set the current working directory
+setwd("C:/Users/hari/Desktop/UCI/Summer2022/BANA200_business_analytics/Class1_Aug4/Assigment_1")
+
+```
+
+
+```{r}
+# Import the tab separated text file of Starbucks in to R
+star_data = read.table("starbucks final data.txt", header=T, sep="\t")
+
+#Export the dataset to excel for further analysis.
+write.csv(star_data, "C:\\Users\\hari\\Desktop\\UCI\\Summer2022\\BANA200_business_analytics\\Class1_Aug4\\Assigment_1\\csv_star_data.csv", row.names = FALSE)
+
+```
+
+```{r}
+# Read through the dataset to check the type and number of variables and to get a high level understanding of the dataset.
+star_data
+
+```
+
+
+```{r}
+# Summary of each column to get a better understanding of the dataset. By doing this, we can check the min, max, mean and the distribution of data of each column.This also gives us an understanding of input errors if any and correctness required for the dataset.
+summary(star_data) 
+```
+
+
+```{r}
+# Missing value check for each variable. 
+null_count = colSums(is.na(star_data))
+print('Column wise missing values')
+null_count
+```
+
+
+```{r}
+# Check the datatype
+class(null_count)
+# Just change the default data type numeric for numbers in R to a data frame object.
+null_count = data.frame(null_count)
+# Check if the object has been converted to dataframe type
+class(null_count)
+# Now check the missing values of each variable in a dataframe format.
+null_count
+# Take the sum of missing values for all the variables
+print(paste('Overall missing values:',colSums(null_count)[1]))
+
+```
+
+
+```{r}
+#####Q2: strip out all rows of data where there are ANY missing values (NA values) and report the number of rows in the dataset that remain:#####
+
+# Disable warning messages globally
+options(warn = - 1) 
+
+```
+
+
+```{r}
+# Strip out all rows of data where there are ANY missing values (NA values)
+na_rows = star_data[!complete.cases(star_data),]
+# Number of missing rows:
+print(paste('Number of missing rows:',nrow(na_rows)))
+# The number of rows in the dataset that remain
+complete_data = na.omit(star_data)
+# Number of non-missing rows
+print(paste('Number of non-missing rows:',nrow(complete_data)))
+
+# Percentage of missing values
+print(paste('Percentage of missing rows:',(nrow(na_rows)/nrow(star_data))*100))
+# Check if any of the rows are completely missing
+#all_missing_rows = star_data[rowSums(is.na(star_data)) > 26,]
+#all_missing_rows
+
+```
+
+```{r}
+#Q3: The 22 variables X1 – X22 should only contain the values 1,2,3,4, or 5. Report for each one of these 22 variables the number of impossible values.Also report the total number of impossible values across all 22 variables (the sum)
+
+#Export the dataset with no missing values to excel for further analysis.
+write.csv(complete_data, "C:\\Users\\hari\\Desktop\\UCI\\Summer2022\\BANA200_business_analytics\\Class1_Aug4\\Assigment_1\\complete_data.csv", row.names = FALSE)
+```
+
+```{r}
+# Impossible values for each variable and total number of impossible values across all rating variables (less than 1)
+# Reset the index
+rownames(complete_data) <- 1:nrow(complete_data)
+
+# Check column wise the total counts equal to or less than 0
+lessthan0_col_wise = (complete_data[1:22] <= 0)*1
+print("Column wise total number of values less than 0 for ratings")
+col_count_less1 = colSums(lessthan0_col_wise)
+col_count_less1
+print(paste('Total number of values less than 0 in the ratings columns: ',sum(lessthan0_col_wise)))
+
+```
+
+
+```{r}
+# Impossible values for each variable and total number of impossible values across all rating variables (greater than 5)
+
+# Check column wise the total counts greater than 5
+greater5_col_wise = (complete_data[1:22] > 5)*1
+print("Column wise total number of values greater than 5 for ratings")
+col_count_great5 = colSums(greater5_col_wise)
+col_count_great5
+print(paste('Total number of values greater than 5 in the ratings columns: ',sum(greater5_col_wise)))
+
+```
+
+
+```{r}
+#Impossible values for each variable from X1 to X22
+#First combine the column sums for both the conditions  
+imposs_vals = rbind(col_count_less1,col_count_great5)
+print("Coulmn wise total number of impossible values across all 22 variables")
+colwise_imposs_val = colSums(imposs_vals)
+colwise_imposs_val
+(paste('The sum of impossible values across all 22 variables: ',sum(colwise_imposs_val)))
+
+```
+
+
+```{r}
+#Q4: For any values less than 1 (< 1), replace these values with 1. For any values greater than 5, replace these values with 5. Once you have replaced all of these values for X1 – X22, do a frequency count and report the total numbers of 1s, 2s, 3s, 4s, and 5s across all 22 variables AFTER replacement
+
+```
+
+
+```{r}
+
+# Replace the zero and negative values with 1 to correct the input errors
+complete_data[1:22][complete_data[1:22] <= 0] <- 1
+# Replace the values greater than 5 with 5 to correct the input errors
+complete_data[1:22][complete_data[1:22] > 5] <- 5
+
+# Check if the values are replaced
+greater5_col_wise = (complete_data[1:22] > 5)*1
+print("Column wise total number of values greater than 5 for ratings")
+colSums(greater5_col_wise)
+lessthan0_col_wise = (complete_data[1:22] <= 0)*1
+print("Column wise total number of values less than 0 for ratings")
+colSums(lessthan0_col_wise)
+# Check the summary of the data to confirm if the min and max values are not less than 1 and more than 5 respectively for variables X1 to X22.
+summary(complete_data)
+
+```
+
+
+```{r}
+#First find out the unique values
+unique_vals = unique(unlist(complete_data[1:22]))
+
+  
+# Create a table of frequency count of each rating variable
+overall_freq <- sapply(complete_data[1:22], 
+               function(x) table(factor(x, levels = sort(unique_vals),
+                                        ordered = TRUE)))
+#overall_freq = data.frame(overall_freq)
+print ("Frequency count of unique values for all the ratings columns")
+print (overall_freq)
+
+#Each category wise total count across all 22 variables
+print("The total numbers of 1s, 2s, 3s, 4s, and 5s across all 22 variables AFTER replacement:")
+rowSums(overall_freq)
+
+#colSums(overall_freq)
+
+```
+
+
+```{r}
+#Q5: The range of satis100 should lie between 0 and 100, and the range of recommend should be between 0 to 10.For satis100, replace any values that are less than 0 with 0, and replace any values greater than 100 with 100. For recommend, replace any values that are less than 0 with 0, and replace any values that are greater than 10 with 10. Finally, for “recommend” only, report below the counts of the number of unique values for “recommend” after you’ve replaced the impossible values.Also report the average values (means) for all variables in the final cleaned dataset.
+```
+
+
+```{r}
+# For satis100, replace any values that are less than 0 with 0, and replace any values greater than 100 with 100
+
+# First check the distribution of satis100
+#table(complete_data$satis100)
+# Now replace less than 0 with 0
+complete_data$satis100[complete_data$satis100< 0] = 0
+# Now replace any values greater than 100 with 100
+complete_data$satis100[complete_data$satis100> 100] = 100
+print("The frequency count for column satis100 that range between 0 and 100 AFTER replacement")
+table(complete_data$satis100)
+
+
+```
+
+
+```{r}
+# For recommend, replace any values that are less than 0 with 0, and replace any values that are greater than 10 with 10.
+
+# First check the distribution of recommend
+#table(complete_data$recommend)
+# Now replace less than 0 with 0
+complete_data$recommend[complete_data$recommend< 0] = 0
+# Now replace any values greater than 10 with 10
+complete_data$recommend[complete_data$recommend> 10] = 10
+print("The frequency count for column recommend that range between 0 and 10 AFTER replacement")
+table(complete_data$recommend)
+
+```
+
+
+```{r}
+# Report the average values (means) for all variables in the final cleaned dataset
+#First convert the entire dataset to numeric using sapply
+data_to_numeric = complete_data[,sapply(complete_data, is.numeric)]
+#Apply the mean operation for all coulmns using apply
+mean_alldata = apply(complete_data,2,mean)
+#Print the mean values
+print("Mean values of the entire dataset")
+mean_alldata
+
+```
+
+```{r}
+#THe summary of the cleaned dataset with missing values removed
+summary(complete_data)
+
+```
+

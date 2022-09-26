@@ -1,0 +1,355 @@
+---
+title: "BANA200_Foundations_of_Business_Analytics_HariSellappan_Takehome_Final"
+output: html_notebook
+---
+
+```{r}
+#Q1) Training and Test Samples Regression
+#First divide the data into a training and test sample. Specifically, the first 5,000 observations should be the training sample, and the last 1,121 observations should be the test sample.
+```
+
+
+```{r}
+setwd("C:/Users/hari/Desktop/UCI/Summer2022/BANA200_business_analytics/Take_home_Final_Sep9")
+star_data<- read.table("Starbucks HW2 Data.txt", header=T, sep="\t")
+summary(star_data)
+```
+
+
+```{r}
+# Q1a)
+
+
+K <- 5000
+N <- nrow(star_data)
+
+train_data <- as.data.frame(star_data[1:K,])
+test_data <- as.data.frame(star_data[(K+1):N,])
+test_data.Y <- test_data[,24]
+test_data.X <- test_data[,1:22]
+
+print(paste('The number of rows in training data:', nrow(train_data)))
+print(paste('The number of rows in testing data:', nrow(test_data)))
+
+```
+
+```{r}
+#Q1b)
+#Run a multiple regression on the training sample using “recommend” as the dependent variable and X1 – X22 as the 22 independent variables.
+#How many of the 22 predictor variables are significant at the 5% level (have a p-value less than 0.05)? Report the R2 value on the training sample and comment.
+```
+
+
+```{r}
+#Create a list of independent variables
+
+#ind_var <- c("X1","X2","X3","X4","X5","X6","X7","X8","X9","X10","X11","X12","X13","X14","X15","X16","X17","X18","X19","X20","X21","X22")
+
+#Create a formula that is easy to use in the linear model
+lm_reg <- as.formula(                      
+  paste("recommend ~ ", paste(paste0("X", 1:22), collapse = " + ")))
+lm_reg                                    
+
+
+```
+
+
+```{r}
+options(scipen=999)
+train_model <- lm(lm_reg, data=train_data) 
+summary(train_model)
+
+#The model developed on train data shows that nearly 17 out 22 variables are significant in predicting the outcome recommend at the level
+#of significance of 0.05
+#THe R-squared value of 35.47% shows that the model does not have significant explantory power.
+
+```
+
+
+```{r}
+#Q1c)
+#Using your regression model estimated from part b) above, calculate the out-of-sample R2 value for the 1121 observations in the test sample and report it below. Compare the R2 value from the training sample to the R2 value you calculated in the test sample. What can you conclude about the model’s ability to predict “recommend” in the test sample? How much of a difference is there in the R2 values between the training and test samples?
+
+```
+
+
+```{r}
+#Predict on test data 
+test_pred <- predict(train_model, newdata = test_data.X)
+
+```
+
+
+```{r}
+#The R-squared value of Train and Test data
+#For train data
+
+print(paste('R-Squared value for the train data:',round(summary(train_model)$r.squared,2)))
+
+#For test data
+SS.total      <- sum((test_data.Y - mean(test_data.Y))^2)
+SS.residual   <- sum((test_data.Y - test_pred)^2)
+SS.regression <- sum((test_pred - mean(test_data.Y))^2)
+test_r_squ = 1 - SS.residual/SS.total
+print(paste('R-Squared value for the test data:', round((test_r_squ),2)))
+
+#OR
+#require(miscTools)
+#r2 <- rSquared(test_data.Y, resid = test_data.Y-test_pred)
+#r2
+```
+
+```{r}
+#Q2) Variable selection
+#Using only the training sample, perform a forward variable selection procedure by using “recommend” as the dependent variable and X1 – X22 as the 22 predictor variables. Paste the results of your regression results based on the final variables selected below. Which variables were dropped? What is the R2 of the forward selection model? When you compare the R2 of the full model (with all 22 variables) and the R2 of the model using forward selection, by how much did the R2 go down by? What can you conclude about how much those dropped variables really matter?
+```
+
+
+```{r}
+#Subset the dataset to run forward selection technique
+forw_select_data = subset(train_data, select = -c(satis100,profits,ZipCode,Income))
+
+#define intercept-only model
+intercept_only <- lm(recommend~ 1, data=forw_select_data)
+
+#define model with all predictors
+all <- lm(lm_reg, data=forw_select_data)
+
+#perform forward stepwise regression
+forward <- step(intercept_only, direction='forward', scope=formula(all), trace=0)
+
+#view results of forward stepwise regression
+forward$anova
+
+
+#view final model
+forward$coefficients
+
+```
+
+
+```{r}
+# List of variables selected in forward selection
+forward_selected<- as.data.frame(sort(names(coef(forward)[-1])))
+colnames(forward_selected) <- "Forward_Selected"
+forward_selected
+
+```
+```{r}
+#Summary of the regression model of variables selected using forward selection technique
+summary(forward)
+
+```
+
+
+
+```{r}
+#Q3) Cluster Analysis and Interpretation
+
+```
+
+
+```{r}
+#Q3a)Using all of the data (all 6121 observations), create a data matrix called “X” which includes the 22 predictor variables: X1, X2, …, X24, X25. Your data matrix X should have 6121 rows and 22 columns.
+```
+
+
+```{r}
+X <- as.matrix(star_data[,1:22])
+```
+
+
+```{r}
+#Q2b)
+#Use the NbClust procedure to determine the optimal number of segments (clusters) for X.
+#Use the “majority rule” to determine the optimal number of clusters.
+```
+
+
+```{r}
+#The data is prepared in such a way that Rows are observations (individuals) and columns are variables. And there is no missing value in the data that must be removed or estimated.The data must be standardized (i.e., scaled) to make variables comparable.But in this case, there is no need of standardization as the variables are in the same scale.
+
+
+```
+
+
+```{r}
+library(NbClust)
+
+```
+
+
+```{r}
+
+opt_cluster <- NbClust(X, distance = "euclidean", min.nc = 2,
+        max.nc = 10, method = "kmeans")
+
+
+Proposed  = c(13,4,4,1,1)
+best_number = c(2,3,4,8,10)
+
+barplot(Proposed,names.arg =best_number, xlab="Number of Clusters k",ylab="Frequency among all indices",col="blue",
+        main="Optimal number of Clusters - k = 2",border="red")
+
+
+```
+
+```{r}
+# Question- 3C
+#Using the optimal number of clusters you found in part Q3b above, run a k-means cluster analysis on the X matrix (perform a k-means cluster analysis on the X matrix using X1 – X22). Set “centers =” to the optimal number of clusters you found in step Q3b, and set the iter.max = 1000 and nstart=100. Report below how many customers are in Cluster 1 and how many customers are in Cluster 2.
+
+cluster_resul = kmeans(x = X, centers = 2, iter.max=1000, nstart=100)
+cluster_resul
+
+#Size of each cluster
+cluster_resul$size
+print(paste('The Size of the cluster 1 using K-means clustering :', cluster_resul$size[1]))
+print(paste('The Size of the cluster 2 using K-means clustering :', cluster_resul$size[2]))
+```
+
+
+```{r}
+# Q3D)
+#Executive management has asked you to identify the “most satisfied” segment of customers. Examine the cluster centers from your k-means analysis and identify the segment of customers that seem the most satisfied. Hint: The most satisfied segment should be the one that generally has the highest average ratings (the highest cluster center values for X1 – X22). Once you have identified the most satisfied segment of customers, flag this segment and set them aside. Report below the cluster center values for X1, X2, X3, X4, and X5 (rounded to two decimal places) for this most satisfied segment of customers.
+
+```
+
+```{r}
+
+
+ratings_clust = t(round(cluster_resul$centers,2))
+ratings_clust = as.data.frame(ratings_clust)
+colnames(ratings_clust) = c("Cluster_1","Cluster_2")
+ratings_clust
+print(paste('Average rating of Cluster 1 :',round(mean(ratings_clust[,1]),2)))
+print(paste('Average rating of Cluster 2 :',round(mean(ratings_clust[,2]),2)))
+#From the above results, it seems to be cluster 1 is the most satisfied segment of customers
+
+
+#cluster center values for X1, X2, X3, X4, and X5
+
+print(paste("cluster center values for X1 is :",ratings_clust[1,1]))
+print(paste("cluster center values for X2 is :",ratings_clust[2,1]))
+print(paste("cluster center values for X3 is :",ratings_clust[3,1]))
+print(paste("cluster center values for X4 is :",ratings_clust[4,1]))
+print(paste("cluster center values for X5 is :",ratings_clust[5,1]))
+
+```
+
+
+```{r}
+#Q3 E1)Split your overall data sample into two groups: “Most Satisfied” and “All Other”. The “most satisfied” group of customers should consist of the one segment that is most satisfied based on Step 3d above, and “All Other” customers will include all other customers that are not in the “most satisfied” segment.
+
+```
+
+
+```{r}
+star_data$cluster = cluster_resul$cluster
+star_data
+
+most_satis = star_data[star_data$cluster == 1,]
+all_other = star_data[star_data$cluster == 2,]
+#nrow(most_satis)
+#nrow(all_other)
+
+
+```
+```{r}
+#Q3 E2)
+#Next, run two separate regression analyses for each group. Use “recommend” as the dependent variable for both regressions and X1 – X22 as the 22 predictor variables.
+```
+
+
+```{r}
+
+most_sat_reg <- lm(lm_reg, data = most_satis)
+summary(most_sat_reg)
+
+all_other_reg <- lm(lm_reg, data = all_other)
+summary(all_other_reg)
+```
+```{r}
+#Q3c)
+#For each one of the regressions, report the average predicted values. That is, extract the two sets of predicted values from the two lm objects by using the “fitted.values” function, and for each regression, take the average of these fitted values and report these two averages below. By how much more (in terms of average predicted “recommend”) is the “Most Satisfied” segment likely to recommend Starbucks? Round all answers to two decimal places.
+```
+
+
+```{r}
+#Q3 E3)
+pred_avg_most_sat  = round(mean(fitted.values(most_sat_reg)),2)
+pred_avg_most_sat
+
+pred_avg_all_othr  = round(mean(fitted.values(all_other_reg)),2)
+pred_avg_all_othr
+```
+
+
+```{r}
+print(paste("The average predicted value for the “Most Satisfied” segment is :",pred_avg_most_sat))
+print(paste("The average predicted value for the “All other” segment is :",pred_avg_all_othr))
+
+```
+
+```{r}
+print(paste('On an average, the most satisfied segment customers likely to recommend',pred_avg_most_sat[1]-pred_avg_all_othr[1], 'ratings more than all other customers'))
+```
+
+
+```{r}
+#Q4)  “What-If” Analysis
+
+#For the “All Other” segment only, increase X1, X2, X7, X8, and X10 by one point. For example, if Customer 1 has X1 = 3, you should set X1 = 4 for this customer.
+
+```
+
+```{r}
+#Q4 A)
+
+#For the “All Other” segment only, increase X1, X2, X7, X8, and X10 by one point. For example, if Customer 1 has X1 = 3, you should set X1 = 4 for this customer. However if Customer 1 has X1 = 5, you should NOT change his or her rating. 
+```
+
+
+```{r}
+#Copy the all_other segment data frame to make changes to some variables
+inc_allother <- all_other
+inc_allother$X1 = ifelse(inc_allother$X1 < 5,inc_allother$X1+1,inc_allother$X1)
+inc_allother$X2 = ifelse(inc_allother$X2 < 5,inc_allother$X2+1,inc_allother$X2)
+inc_allother$X7 = ifelse(inc_allother$X7 < 5,inc_allother$X7+1,inc_allother$X7)
+inc_allother$X8 = ifelse(inc_allother$X8 < 5,inc_allother$X8+1,inc_allother$X8)
+inc_allother$X10 = ifelse(inc_allother$X10 < 5,inc_allother$X10+1,inc_allother$X10)
+```
+
+
+```{r}
+#Q4 B)
+#Once you have changed the ratings for X1, X2, X7, X8, and X10 for the “All Other” segment, only use your existing regression model results from Q3 to recalculate the predicted “recommend” for the “All Other” segment.
+
+```
+
+
+```{r}
+
+pred_all_other <- predict(object = all_other_reg , newdata = inc_allother)
+
+```
+
+
+```{r}
+#Q 4 C)
+#Once you have recalculated the predicted values for all customers in the “All Other” segment (based on the updated values for X1, X2, X7, X8, and X10), take the average of these new predicted values and report this average below, rounded to two decimal places. By how much is the willingness to recommend expected to increase by if Starbucks can get the “All Other” customer segment to be one point more satisfied for X1, X2, X7, X8, and X10?
+
+```
+
+
+```{r}
+
+ print(paste('Average of the new predicted values of All Other segment customers when X1, X2, X7, X8, and X10 are increased by one point :',round(mean(pred_all_other),2)))
+
+```
+
+
+```{r}
+print(paste('The willingness to recommend expected to increase by',round(mean(pred_all_other),2)-pred_avg_all_othr[1], 'if Starbucks can get the “All Other” customer segment to be one point more satisfied for X1, X2, X7, X8, and X10'))
+
+```
+

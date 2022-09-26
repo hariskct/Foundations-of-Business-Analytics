@@ -1,0 +1,165 @@
+---
+title: "BANA200_Foundations_of_Business_Analytics_HariSellappan_Assignment2"
+output: html_notebook
+---
+ 
+
+```{r}
+# Set the current working directory
+setwd("C:/Users/hari/Desktop/UCI/Summer2022/BANA200_business_analytics/Asignment_2_Aug24_due")
+getwd()
+```
+
+```{r}
+# Import the tab separated text file of Starbucks in to R
+star_data = read.table("Starbucks HW2 Data.txt", header=T, sep="\t")
+
+```
+
+```{r}
+summary (star_data)
+```
+
+```{r}
+library(ggplot2)
+#install.packages('ggplot2')
+#install.packages('hrbrthemes')
+library(hrbrthemes)
+star_data$ZipCode <- as.factor(star_data$ZipCode)
+attach(star_data)
+# 1: uniform color. Color is for the border, fill is for the inside
+ggplot(star_data, aes(x=as.factor(star_data$recommend) )) +
+  geom_bar(color="blue", fill=rgb(0.1,0.4,0.5,0.7) )
+
+```
+
+
+```{r}
+
+# Histogram overlaid with kernel density curve
+ggplot(star_data, aes(x=satis100)) + 
+    geom_histogram(aes(y=..density..),      # Histogram with density instead of count on y-axis
+                   bins =10,
+                   colour=4, fill="white")+
+    geom_vline(aes(xintercept=median(satis100, na.rm=T)),   # Ignore NA values for mean
+               color="red", linetype="dashed", size=1) +
+    geom_density(alpha=.2, fill="#FF6666")  # Overlay with transparent density plot
+
+```
+```{r}
+median(star_data$satis100)
+```
+
+
+
+
+```{r}
+summary(profits)
+```
+
+```{r}
+
+#Q2a)
+# multiple regression using satis100, Income and recommend as independent variables and Profit as a dependent variable
+
+options(scipen =999)
+star_reg <- lm(profits ~ satis100+recommend+Income)
+star_reg
+summary(star_reg)
+
+```
+
+
+```{r}
+
+#Q2b)
+
+predict_data = star_data[ , c("satis100", "Income","recommend")]    
+predict_data
+predict_data$satis100 = predict_data$satis100+10
+predict_data
+
+new_profits <- predict(object=star_reg, newdata=predict_data)
+
+old_new_profit <- cbind(new_profits, star_data$profits)
+
+
+diff_profit = mean(new_profits) - mean(star_data$profits)
+diff_profit
+
+# Or with the regression summary we can directly say that for every 1 unit increase in satis100 there is an increase in profit of $0.238
+
+```
+
+```{r}
+#Q2c)
+# what is the expected profit?
+coefs <- coef(star_reg)
+coefs
+profits = coefs[1] + coefs[2]*77+coefs[3]*8+coefs[4]*121500
+profits
+round(profits,2)
+```
+
+
+```{r}
+#Q3)
+# Create dummy variable
+star_data$fail <- ifelse(star_data$satis100 < 20, 1, 0)
+star_data$exceed <- ifelse(star_data$satis100 >80, 1, 0)
+#Print and check after creating dummy variable
+head(star_data$satis100)
+head(star_data$fail)
+head(star_data$exceed)
+summary(star_data)
+```
+
+
+```{r}
+#Q3a)
+sum(star_data[,"exceed"])
+```
+
+
+```{r}
+#Q3b)
+sum(star_data[,"fail"])
+```
+
+
+```{r}
+#Q3c)
+
+dummy_reg <- lm(data = star_data, profits ~ fail+exceed+recommend+Income)
+dummy_reg
+summary(dummy_reg)
+
+```
+
+
+
+```{r}
+write.csv(star_data, "C:\\Users\\hari\\Desktop\\UCI\\Summer2022\\BANA200_business_analytics\\Asignment_2_Aug24_due\\star_new_data.csv", row.names = FALSE)
+```
+
+
+```{r}
+
+#Extracted the data of cities for each zipcode
+
+uniq_zip = list(unique(star_data$ZipCode))
+#install.packages("readxl")
+library("readxl")
+
+
+# Import the tab separated text file of Starbucks in to R
+zip_data = read_excel("california-zip-codes.xlsx")
+zip_data
+
+merged_data = merge(x=star_data,y=zip_data,by="ZipCode",all.x=TRUE)
+merged_data
+ 
+write.csv(merged_data, "C:\\Users\\hari\\Desktop\\UCI\\Summer2022\\BANA200_business_analytics\\Asignment_2_Aug24_due\\star_merged_data.csv", row.names = FALSE)
+
+```
+
